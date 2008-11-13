@@ -68,6 +68,52 @@ class FactoryTest < Test::Unit::TestCase
     should "have a build class" do
       assert_equal @class, @factory.build_class
     end
+    
+    should "have a set of callbacks" do
+      assert @factory.instance_eval {@callbacks}
+    end
+
+    should "have an empty set of callbacks when none have been set" do
+      assert @factory.instance_eval {@callbacks.empty?}
+    end
+
+    context "when adding an after_build callback" do
+      setup do
+        @the_block = lambda{|u| }
+        @factory.after_build &@the_block
+      end
+
+      should "have something in the set of callbacks" do
+        assert_equal 1, @factory.instance_eval {@callbacks.size}
+      end
+      
+      should "record the callback in the set of callbacks" do
+        assert @factory.instance_eval {@callbacks.values}.include?(@the_block)
+      end
+
+      should "record the callback in the set of callbacks under the after_build key" do
+        assert_equal @the_block, @factory.instance_eval {@callbacks[:after_build]}
+      end
+    end
+
+    context "when adding an after_create callback" do
+      setup do
+        @the_block = lambda{|u| }
+        @factory.after_create &@the_block
+      end
+
+      should "have something in the set of callbacks" do
+        assert_equal 1, @factory.instance_eval {@callbacks.size}
+      end
+      
+      should "record the callback in the set of callbacks" do
+        assert @factory.instance_eval {@callbacks.values}.include?(@the_block)
+      end
+
+      should "record the callback in the set of callbacks under the after_create key" do
+        assert_equal @the_block, @factory.instance_eval {@callbacks[:after_create]}
+      end
+    end
 
     should "not allow the same attribute to be added twice" do
       assert_raise(Factory::AttributeDefinitionError) do
@@ -305,6 +351,91 @@ class FactoryTest < Test::Unit::TestCase
         @factory.add_attribute(:first_name, @first_name)
         @factory.add_attribute(:last_name,  @last_name)
         @factory.add_attribute(:email,      @email)
+      end
+
+      context "and an after_build callback has been registered" do
+        setup do
+          @the_block = lambda {|user| assert user.new_record?; @saved = user}
+          
+          @factory.after_build &@the_block
+        end
+        
+        should "call the callback when the object is built" do
+          @the_block.expects(:call).once
+          @factory.build
+        end
+
+        should "call the callback when the object is created" do
+          @the_block.expects(:call).once
+          @factory.create
+        end
+
+        should "yield the instance to the callback when called" do
+          instance = @factory.build
+          assert_equal @saved, instance
+        end
+      end
+
+      context "and an after_create callback has been registered" do
+        setup do
+          @the_block = lambda {|user| assert !user.new_record?; @saved = user}
+          
+          @factory.after_create &@the_block
+        end
+        
+        should "not call the callback when the object is built" do
+          @the_block.expects(:call).never
+          @factory.build
+        end
+
+        should "call the callback when the object is created" do
+          @the_block.expects(:call).once
+          @factory.create
+        end
+
+        should "yield the instance to the callback when called" do
+          instance = @factory.create
+          assert_equal @saved, instance
+        end
+      end
+
+      context "and both after_build and after_create callbacks have been registered" do
+        setup do
+          @the_after_build_block = lambda {|user| assert user.new_record?; @post_build = user}
+          @the_after_create_block = lambda {|user| assert !user.new_record?; @post_create = user}
+          
+          @factory.after_build &@the_after_build_block
+          @factory.after_create &@the_after_create_block
+        end
+        
+        should "only call the after_build callback when the object is built" do
+          @the_after_build_block.expects(:call).once
+          @the_after_create_block.expects(:call).never
+          @factory.build
+        end
+
+        should "call both callbacks when the object is created" do
+          @the_after_build_block.expects(:call).once
+          @the_after_create_block.expects(:call).once
+          @factory.create
+        end
+
+        should "yield the same instance to each callback when called" do
+          instance = @factory.create
+          assert_equal @post_build, instance
+          assert_equal @post_create, instance
+          assert_equal @post_create, @post_build
+        end
+        
+        should "call the after_build callback before the after_create callback when objects are created" do
+          # TODO - is this good enough to detect "beforeness"?
+          @the_after_build_block = lambda {|user| assert_nil @post_build; assert_nil @post_create; @post_build = user}
+          @the_after_create_block = lambda {|user| assert_not_nil @post_build; assert_nil @post_create; @post_create = user}
+          
+          @factory.after_build &@the_after_build_block
+          @factory.after_create &@the_after_create_block
+          @factory.create
+        end
       end
 
       context "when building an instance" do
