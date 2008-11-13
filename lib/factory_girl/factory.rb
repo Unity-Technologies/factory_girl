@@ -40,15 +40,11 @@ class Factory
     options.assert_valid_keys(:class)
     @factory_name = factory_name_for(name)
     @options      = options
-<<<<<<< HEAD:lib/factory_girl/factory.rb
     @attributes   = []
-=======
-
     @static_attributes     = {}
     @lazy_attribute_blocks = {}
     @lazy_attribute_names  = []
     @callbacks = {}
->>>>>>> e892e47104642a8538a4e5ec8db541141d7a961a:lib/factory_girl/factory.rb
   end
 
   # Adds an attribute that should be assigned on generated instances for this
