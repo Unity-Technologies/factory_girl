@@ -17,6 +17,4 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.0.1}
   s.summary = %q{factory_girl provides a framework and DSL for defining and using model instance factories.}
   s.test_files = ["test/aliases_test.rb", "test/attribute_proxy_test.rb", "test/attribute_test.rb", "test/factory_test.rb", "test/integration_test.rb", "test/sequence_test.rb"]
-
-  s.add_dependency(%q<activesupport>, [">= 1.0"])
 end
